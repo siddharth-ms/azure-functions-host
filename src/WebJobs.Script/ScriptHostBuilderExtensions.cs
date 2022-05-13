@@ -386,7 +386,7 @@ namespace Microsoft.Azure.WebJobs.Script
                 {
                     o.InstrumentationKey = appInsightsInstrumentationKey;
                     o.ConnectionString = appInsightsConnectionString;
-                });
+                }, t => t.TelemetryProcessorChainBuilder.Use(next => new ScriptTelemetryProcessor(next)));
 
                 builder.Services.ConfigureOptions<ApplicationInsightsLoggerOptionsSetup>();
 
@@ -394,7 +394,7 @@ namespace Microsoft.Azure.WebJobs.Script
 
                 builder.Services.AddSingleton<ITelemetryInitializer, ScriptTelemetryInitializer>();
 
-            //    builder.Services.AddSingleton<ITelemetryProcessor, ScriptTelemetryProcessor>();
+                builder.Services.AddSingleton<ITelemetryProcessor, ScriptTelemetryProcessor>();
 
                 if (SystemEnvironment.Instance.IsPlaceholderModeEnabled())
                 {
