@@ -3,15 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Channel;
-using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.Azure.WebJobs.Script.Workers.Rpc;
 using Microsoft.Extensions.Options;
-using StackFrame = Microsoft.ApplicationInsights.DataContracts.StackFrame;
 
 namespace Microsoft.Azure.WebJobs.Script.Config
 {

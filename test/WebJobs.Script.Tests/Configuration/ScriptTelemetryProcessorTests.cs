@@ -58,7 +58,6 @@ namespace Microsoft.Azure.WebJobs.Script.Tests.Configuration
 
             private ITelemetry ToUserException(RpcException rpcException, ITelemetry originalItem)
             {
-                // TODO - remove. For testing purposes while worker changes aren't in place yet.
                 rpcException.RemoteTypeName = "test user exception type";
 
                 string typeName = string.IsNullOrEmpty(rpcException.RemoteTypeName) ? rpcException.GetType().ToString() : rpcException.RemoteTypeName;

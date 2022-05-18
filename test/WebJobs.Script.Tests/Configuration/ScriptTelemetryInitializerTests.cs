@@ -3,7 +3,6 @@
 
 using System;
 using Microsoft.ApplicationInsights.DataContracts;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Azure.WebJobs.Script.Config;
 using Microsoft.Extensions.Options;
 using Xunit;
