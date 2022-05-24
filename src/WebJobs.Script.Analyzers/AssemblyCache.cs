@@ -30,12 +30,9 @@ namespace Microsoft.Azure.Functions.Analyzers
         // Assembly Display Name --> loaded Assembly object
         Dictionary<string, Assembly> _mapRef = new Dictionary<string, Assembly>();
 
-        const string WebJobsAssemblyName = "Microsoft.Azure.WebJobs";
-        const string WebJobsHostAssemblyName = "Microsoft.Azure.WebJobs.Host";
+        JobHostMetadataProvider _jobHostMetadataProvider;
 
-        JobHostMetadataProvider _tooling;
-
-        internal JobHostMetadataProvider Tooling => _tooling;
+        internal JobHostMetadataProvider JobHostMetadataProvider => _jobHostMetadataProvider;
         private int _projectCount;
 
         // $$$ This can get invoked multiple times concurrently
@@ -51,24 +48,24 @@ namespace Microsoft.Azure.Functions.Analyzers
                 // If project references have changed, then reanalyze to pick up new dependencies.
                 var refs = compilation.References.OfType<PortableExecutableReference>().ToArray();
                 count = refs.Length;
-                if ((count == _projectCount) && (_tooling != null))
+                if ((count == _projectCount) && (_jobHostMetadataProvider != null))
                 {
                     return; // already initialized.
                 }
 
                 // Even for netStandard/.core projects, this will still be a flattened list of the full transitive closure of dependencies.
-                foreach (var asm in compilation.References.OfType<PortableExecutableReference>())
+                foreach (var reference in compilation.References.OfType<PortableExecutableReference>())
                 {
-                    var dispName = asm.Display; // For .net core, the displayname can be the full path
-                    var path = asm.FilePath;
+                    var dispName = reference.Display; // For .net core, the displayname can be the full path
+                    var path = reference.FilePath;
 
                     _map[dispName] = path;
                 }
 
                 // Builtins
                 _mapRef["mscorlib"] = typeof(object).Assembly;
-                _mapRef[WebJobsAssemblyName] = typeof(Microsoft.Azure.WebJobs.FunctionNameAttribute).Assembly;
-                _mapRef[WebJobsHostAssemblyName] = typeof(Microsoft.Azure.WebJobs.JobHost).Assembly;
+                _mapRef[Constants.Assemblies.WebJobsAssemblyName] = typeof(Microsoft.Azure.WebJobs.FunctionNameAttribute).Assembly;
+                _mapRef[Constants.Assemblies.WebJobsHostAssemblyName] = typeof(Microsoft.Azure.WebJobs.JobHost).Assembly;
 
                 // JSON.Net?
             }
@@ -87,23 +84,23 @@ namespace Microsoft.Azure.Functions.Analyzers
                 }
                 if (path.Contains(@"\ref\"))    // Skip reference assemblies.
                 {
-                    continue; 
+                    continue;
                 }
 
-                Assembly assembly;
+                Assembly loadedAssembly;
                 try
                 {
                     // See GetNuGetPackagesPath for details
                     // Script runtime is already setup with assembly resolution hooks, so use LoadFrom
-                    assembly = Assembly.LoadFrom(path);
+                    loadedAssembly = Assembly.LoadFrom(path);
 
-                    string asmName = new AssemblyName(assembly.FullName).Name;
-                    _mapRef[asmName] = assembly;
+                    string assemblyName = new AssemblyName(loadedAssembly.FullName).Name;
+                    _mapRef[assemblyName] = loadedAssembly;
 
-                    var test = assembly.GetCustomAttributes<WebJobsStartupAttribute>().Select(a => a.WebJobsStartupType);
-                    if (test.Count() > 0)
+                    var startupAttr = loadedAssembly.GetCustomAttributes<WebJobsStartupAttribute>().Select(a => a.WebJobsStartupType);
+                    if (startupAttr.Count() > 0)
                     {
-                        webjobsStartups.AddRange(test);
+                        webjobsStartups.AddRange(startupAttr);
                     }
                 }
                 catch (Exception e)
@@ -125,7 +122,7 @@ namespace Microsoft.Azure.Functions.Analyzers
             lock (this)
             {
                 this._projectCount = count;
-                this._tooling = tooling;
+                this._jobHostMetadataProvider = tooling;
             }
         }
 
@@ -141,25 +138,24 @@ namespace Microsoft.Azure.Functions.Analyzers
 
         private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {
-            var an = new AssemblyName(args.Name);
-            var context = args.RequestingAssembly;
+            var assemblyName = new AssemblyName(args.Name);
 
-            Assembly asm2;
-            if (_mapRef.TryGetValue(an.Name, out asm2))
+            Assembly mappedAssembly;
+            if (_mapRef.TryGetValue(assemblyName.Name, out mappedAssembly))
             {
-                return asm2;
+                return mappedAssembly;
             }
 
-            asm2 = LoadFromProjectReference(an);
-            if (asm2 != null)
+            mappedAssembly = LoadFromProjectReference(assemblyName);
+            if (mappedAssembly != null)
             {
-                _mapRef[an.Name] = asm2;
+                _mapRef[assemblyName.Name] = mappedAssembly;
             }
 
-            return asm2;
+            return mappedAssembly;
         }
 
-        private Assembly LoadFromProjectReference(AssemblyName an)
+        private Assembly LoadFromProjectReference(AssemblyName assemblyName)
         {
             foreach (var kv in _map)
             {
@@ -173,14 +169,14 @@ namespace Microsoft.Azure.Functions.Analyzers
 
                 // Simplifying assumption: assume dll name matches assembly name.
                 // Use this as a filter to limit the number of file-touches.
-                if (string.Equals(filename, an.Name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(filename, assemblyName.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    var an2 = AssemblyName.GetAssemblyName(path);
+                    var assemblyNameFromPath = AssemblyName.GetAssemblyName(path);
 
-                    if (string.Equals(an2.FullName, an.FullName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(assemblyNameFromPath.FullName, assemblyName.FullName, StringComparison.OrdinalIgnoreCase))
                     {
-                        var a = Assembly.LoadFrom(path);
-                        return a;
+                        var loadedAssembly = Assembly.LoadFrom(path);
+                        return loadedAssembly;
                     }
                 }
             }

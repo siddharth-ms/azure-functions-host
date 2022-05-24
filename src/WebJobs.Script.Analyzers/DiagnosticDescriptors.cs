@@ -12,12 +12,12 @@ namespace Microsoft.Azure.Functions.Analyzers
     {
         private static DiagnosticDescriptor Create(string id, string title, string messageFormat, string category, DiagnosticSeverity severity)
         {
-            string helpLink = $"https://docs.microsoft.com/azure/azure-functions/errors-diagnostics/sdk-rules/{id}"; 
+            string helpLink = $"https://docs.microsoft.com/azure/azure-functions/errors-diagnostics/sdk-rules/{id}";
             return new DiagnosticDescriptor(id, title, messageFormat, category, severity, isEnabledByDefault: true, helpLinkUri: helpLink);
         }
 
         public static DiagnosticDescriptor AsyncVoidDiscouraged { get; }
-            = Create(id: "AZF0001", title: "Avoid async void", 
+            = Create(id: "AZF0001", title: "Avoid async void",
                 messageFormat: "Async void can lead to unexpected behavior. Return Task instead.",
                 category: Constants.DiagnosticsCategories.Usage,
                 severity: DiagnosticSeverity.Error);
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Functions.Analyzers
         public static DiagnosticDescriptor IllegalFunctionName { get; }
             = Create(id: "AZF0003", title: "Illegal Function name",
                 messageFormat: "Function name can't be '{0}'",
-                category: Constants.DiagnosticsCategories.WebJobs,
+                category: Constants.DiagnosticsCategories.WebJobsBindings,
                 severity: DiagnosticSeverity.Error);
     }
 }

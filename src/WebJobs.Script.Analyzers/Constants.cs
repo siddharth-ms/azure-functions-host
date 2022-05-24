@@ -5,6 +5,12 @@ namespace Microsoft.Azure.Functions.Analyzers
 {
     internal static class Constants
     {
+        internal static class Assemblies
+        {
+            public const string WebJobsAssemblyName = "Microsoft.Azure.WebJobs";
+            public const string WebJobsHostAssemblyName = "Microsoft.Azure.WebJobs.Host";
+        }
+
         internal static class Types
         {
             public const string FunctionNameAttribute = "Microsoft.Azure.WebJobs.FunctionNameAttribute";
@@ -12,9 +18,9 @@ namespace Microsoft.Azure.Functions.Analyzers
 
         internal static class DiagnosticsCategories
         {
-            public const string Reliability = "Reliability";
-            public const string Usage = "Usage";
-            public const string WebJobs = "WebJobs";    // TODO: Too vague?
+            public const string Reliability = nameof(Reliability);
+            public const string Usage = nameof(Usage);
+            public const string WebJobsBindings = nameof(WebJobsBindings);
         }
     }
 }

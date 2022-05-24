@@ -22,9 +22,10 @@ namespace Microsoft.Azure.Functions.Analyzers
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(DiagnosticDescriptors.IllegalFunctionName); } }
 
-    public static void VerifyWebJobsLoaded() 
+        public static void VerifyWebJobsLoaded()
         {
-            var x = new JobHost(new OptionsWrapper<JobHostOptions>(new JobHostOptions()), null);
+            // Check if WebJobs types can be loaded
+            var jobHost = new JobHost(new OptionsWrapper<JobHostOptions>(new JobHostOptions()), null);
         }
 
         public override void Initialize(AnalysisContext context)
@@ -47,11 +48,11 @@ namespace Microsoft.Azure.Functions.Analyzers
             var compilation = context.Compilation;
 
             AssemblyCache.Instance.Build(compilation);
-            _tooling = AssemblyCache.Instance.Tooling;
+            _tooling = AssemblyCache.Instance.JobHostMetadataProvider;
 
             // cast to PortableExecutableReference which has a file path
-            var x1 = compilation.References.OfType<PortableExecutableReference>().ToArray();
-            var webJobsPath = (from reference in x1
+            var references = compilation.References.OfType<PortableExecutableReference>().ToArray();
+            var webJobsPath = (from reference in references
                                where IsWebJobsSdk(reference)
                                select reference.FilePath).SingleOrDefault();
 
@@ -80,58 +81,57 @@ namespace Microsoft.Azure.Functions.Analyzers
             }
 
             var methodDecl = (MethodDeclarationSyntax)context.Node;
-            var methodName = methodDecl.Identifier.ValueText;
 
-            if (!HasFunctionNameAttribute(context, methodDecl))
+            if (!CheckForFunctionNameAttributeAndReport(context, methodDecl))
             {
                 return;
             }
-
-            // TODO: Attribute validation
         }
 
         // First argument to the FunctionName ctor.
         private string GetFunctionNameFromAttribute(SemanticModel semantics, AttributeSyntax attributeSyntax)
         {
-            foreach (var arg in attributeSyntax.ArgumentList.Arguments)
+            if (attributeSyntax.ArgumentList.Arguments.Count == 0)
             {
-                var val = semantics.GetConstantValue(arg.Expression);
-                if (!val.HasValue)
-                {
                 return null;
-                }
-                return val.Value as string;
             }
-            return null;
+
+            var firstArg = attributeSyntax.ArgumentList.Arguments[0];
+            var val = semantics.GetConstantValue(firstArg.Expression);
+
+            return val.Value as string;
         }
 
         // Does the method have a [FunctionName] attribute?
         // This provides a quick check before we get into the more intensive analysis work.
-        private bool HasFunctionNameAttribute(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax methodDeclarationSyntax)
+        private bool CheckForFunctionNameAttributeAndReport(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax methodDeclarationSyntax)
         {
             foreach (var attrListSyntax in methodDeclarationSyntax.AttributeLists)
             {
                 foreach (AttributeSyntax attributeSyntax in attrListSyntax.Attributes)
                 {
                     // Perf - Can we get the name without doing a symbol resolution?
+                    var test = attributeSyntax.GetText();
                     var symAttributeCtor = context.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol;
                     if (symAttributeCtor != null)
                     {
                         var attrType = symAttributeCtor.ContainingType;
-                        if (attrType.Name == nameof(FunctionNameAttribute))
+                        if (attrType.Name != nameof(FunctionNameAttribute))
                         {
-                            // Validate the FunctionName
-                            var functionName = GetFunctionNameFromAttribute(context.SemanticModel, attributeSyntax);
-
-                            bool match = FunctionNameAttribute.FunctionNameValidationRegex.IsMatch(functionName);
-                            if (!match)
-                            {
-                                var error = Diagnostic.Create(DiagnosticDescriptors.IllegalFunctionName, attributeSyntax.GetLocation(), functionName);
-                                context.ReportDiagnostic(error);
-                            }
-
-                            return true;
+                            return false;
                         }
+
+                        // Validate the FunctionName
+                        var functionName = GetFunctionNameFromAttribute(context.SemanticModel, attributeSyntax);
+
+                        bool match = FunctionNameAttribute.FunctionNameValidationRegex.IsMatch(functionName);
+                        if (!match)
+                        {
+                            var error = Diagnostic.Create(DiagnosticDescriptors.IllegalFunctionName, attributeSyntax.GetLocation(), functionName);
+                            context.ReportDiagnostic(error);
+                        }
+
+                        return true;
                     }
                 }
             }

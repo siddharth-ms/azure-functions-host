@@ -8,6 +8,13 @@ using Microsoft.Azure.WebJobs.Hosting;
 
 namespace Microsoft.Azure.Functions.Analyzers
 {
+    /// <summary>
+    /// An implementation of an <see cref="IWebJobsStartupTypeLocator"/> that "locates" startup types
+    /// from a Microsoft.CodeAnalysis.Compilation's dependencies.
+    /// 
+    /// Note: Assemblies are derived from the Compilation by AssemblyCache. 
+    /// This class pulls the WebJobsStartupAttributes from assemblies in the list.
+    /// </summary>
     public class CompilationWebJobsStartupTypeLocator : IWebJobsStartupTypeLocator
     {
         private readonly Assembly[] _assemblies;
