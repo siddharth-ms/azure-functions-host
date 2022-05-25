@@ -17,9 +17,6 @@ namespace Microsoft.Azure.Functions.Analyzers
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class WebJobsAttributeAnalyzer : DiagnosticAnalyzer
     {
-        // TODO: Scope this to per-project
-        JobHostMetadataProvider _tooling;
-
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(DiagnosticDescriptors.IllegalFunctionName); } }
 
         public static void VerifyWebJobsLoaded()
@@ -47,9 +44,6 @@ namespace Microsoft.Azure.Functions.Analyzers
         {
             var compilation = context.Compilation;
 
-            AssemblyCache.Instance.Build(compilation);
-            _tooling = AssemblyCache.Instance.JobHostMetadataProvider;
-
             // cast to PortableExecutableReference which has a file path
             var references = compilation.References.OfType<PortableExecutableReference>().ToArray();
             var webJobsPath = (from reference in references
@@ -75,17 +69,9 @@ namespace Microsoft.Azure.Functions.Analyzers
         // Analyze the method signature to validate binding attributes + types on the parameters
         private void AnalyzeMethodDeclarationNode(SyntaxNodeAnalysisContext context)
         {
-            if (_tooling == null) // Not yet initialized
-            {
-                return;
-            }
-
             var methodDecl = (MethodDeclarationSyntax)context.Node;
 
-            if (!CheckForFunctionNameAttributeAndReport(context, methodDecl))
-            {
-                return;
-            }
+            CheckForFunctionNameAttributeAndReport(context, methodDecl);
         }
 
         // First argument to the FunctionName ctor.
@@ -102,9 +88,9 @@ namespace Microsoft.Azure.Functions.Analyzers
             return val.Value as string;
         }
 
-        // Does the method have a [FunctionName] attribute?
-        // This provides a quick check before we get into the more intensive analysis work.
-        private bool CheckForFunctionNameAttributeAndReport(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax methodDeclarationSyntax)
+        // Quick check for [FunctionName] attribute on a method.
+        // Reports a diagnostic if the name doesn't meet requirements.
+        private void CheckForFunctionNameAttributeAndReport(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax methodDeclarationSyntax)
         {
             foreach (var attrListSyntax in methodDeclarationSyntax.AttributeLists)
             {
@@ -118,7 +104,7 @@ namespace Microsoft.Azure.Functions.Analyzers
                         var attrType = symAttributeCtor.ContainingType;
                         if (attrType.Name != nameof(FunctionNameAttribute))
                         {
-                            return false;
+                            return;
                         }
 
                         // Validate the FunctionName
@@ -131,11 +117,10 @@ namespace Microsoft.Azure.Functions.Analyzers
                             context.ReportDiagnostic(error);
                         }
 
-                        return true;
+                        return;
                     }
                 }
             }
-            return false;
         }
     }
 }

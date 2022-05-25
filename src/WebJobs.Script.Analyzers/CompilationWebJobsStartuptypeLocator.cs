@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Functions.Analyzers
             return _startupTypes.Value;
         }
 
-        public Type[] GetTypes()
+        private Type[] GetTypes()
         {
             return _assemblies?.SelectMany(a => a.GetCustomAttributes<WebJobsStartupAttribute>().Select(a => a.WebJobsStartupType)).ToArray();
         }
