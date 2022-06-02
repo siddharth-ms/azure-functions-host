@@ -35,6 +35,7 @@ namespace Microsoft.Azure.WebJobs.Script.Grpc
             {
                 case StatusResult.Types.Status.Failure:
                     var rpcException = GetRpcException(status);
+                    // TODO - once add protobuf, remove below
                     if (FeatureFlags.IsEnabled(ScriptConstants.FeatureFlagEnableUserException))
                     {
                         rpcException.IsUserException = true;
@@ -57,7 +58,7 @@ namespace Microsoft.Azure.WebJobs.Script.Grpc
             var status = statusResult?.Status.ToString();
             if (ex != null)
             {
-                return new Workers.Rpc.RpcException(status, ex.Message, ex.StackTrace);
+                return new Workers.Rpc.RpcException(status, ex.Message, ex.StackTrace); // TODO - once add protobuf, add typeName & isUserException
             }
             return new Workers.Rpc.RpcException(status, string.Empty, string.Empty);
         }

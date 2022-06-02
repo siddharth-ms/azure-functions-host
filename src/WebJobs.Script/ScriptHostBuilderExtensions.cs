@@ -394,8 +394,6 @@ namespace Microsoft.Azure.WebJobs.Script
 
                 builder.Services.AddSingleton<ITelemetryInitializer, ScriptTelemetryInitializer>();
 
-                builder.Services.AddSingleton<ITelemetryProcessor, ScriptTelemetryProcessor>(); // TODO - need this?
-
                 if (SystemEnvironment.Instance.IsPlaceholderModeEnabled())
                 {
                     // Disable auto-http and dependency tracking when in placeholder mode.

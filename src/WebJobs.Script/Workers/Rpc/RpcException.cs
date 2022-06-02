@@ -7,7 +7,7 @@ namespace Microsoft.Azure.WebJobs.Script.Workers.Rpc
 {
     public class RpcException : Exception
     {
-        public RpcException(string result, string message, string stack, string typeName = "")
+        public RpcException(string result, string message, string stack, string typeName = "", bool isUserException = false)
             : base($"Result: {result}\nException: {message}\nStack: {stack}")
         {
             RemoteStackTrace = stack;
@@ -16,6 +16,7 @@ namespace Microsoft.Azure.WebJobs.Script.Workers.Rpc
             {
                 RemoteTypeName = typeName;
             }
+            IsUserException = isUserException;
         }
 
         public bool IsUserException { get; set; }

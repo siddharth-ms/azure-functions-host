@@ -20,7 +20,8 @@ namespace Microsoft.Azure.WebJobs.Script.Config
 
         public void Process(ITelemetry item)
         {
-            if (item is ExceptionTelemetry exceptionTelemetry
+            if (FeatureFlags.IsEnabled(ScriptConstants.FeatureFlagEnableUserException)
+                && item is ExceptionTelemetry exceptionTelemetry
                 && exceptionTelemetry.Exception.InnerException is RpcException rpcException
                 && rpcException.IsUserException)
             {
